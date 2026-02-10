@@ -18,18 +18,22 @@ public class TimexNormalizerTest {
          = { "", "Tuesday, 1999", "before noon", "some   time   today", "5 o'clock", "5 o'clock tomorrow", "5 oclock tomorrow"  };
 
    public static void main( String[] args ) {
-      System.out.println( "===== Testing TimexNormalizer with default constructor (default timeout). =====");
+      System.out.println( "===== Testing TimexNormalizer with default constructor (default timeout, simple output). =====");
       try ( TimexNormalizer normalizer = new TimexNormalizer() ) {
          normalizeGood( normalizer );
          normalizeBad( normalizer );
       }
-      System.out.println( "\n===== Testing TimexNormalizer constructed with ascending timeouts. =====");
-      for ( int timeout : TIMEOUTS ) {
-         try ( TimexNormalizer normalizer = new TimexNormalizer( timeout ) ) {
-            normalizeGood( normalizer );
-//            normalizeBad( normalizer );
-         }
+      System.out.println( "===== Testing TimexNormalizer with default constructor (default timeout, structured output). =====");
+      try ( TimexNormalizer normalizer = new TimexNormalizer( 500, false ) ) {
+         normalizeGood( normalizer );
       }
+//      System.out.println( "\n===== Testing TimexNormalizer constructed with ascending timeouts. =====");
+//      for ( int timeout : TIMEOUTS ) {
+//         try ( TimexNormalizer normalizer = new TimexNormalizer( timeout ) ) {
+//            normalizeGood( normalizer );
+////            normalizeBad( normalizer );
+//         }
+//      }
    }
 
    static private void normalizeGood( final TimexNormalizer normalizer ) {
@@ -49,7 +53,7 @@ public class TimexNormalizerTest {
 
    static private void normalize( final TimexNormalizer normalizer, final String timex ) {
       try {
-         final String result = normalizer.getNormalizedTimex( timex );
+         final String result = normalizer.normalize( timex );
          if ( !result.isEmpty() ) {
             System.out.println( timex + " is normalized to " + result + " in " + normalizer.getTimeout() + " milliseconds" );
          }

@@ -171,3 +171,150 @@ Add a download of HealthNLP-TimeNorm to your maven repositories `.m2/`, to take 
 </plugin>
 ```
 Java and/or your IDE will not be able to find hnlp-timenorm until you perform mvn clean.
+
+
+## Java TimexNormalizer Class
+
+### `final public class TimexNormalizer implements Closeable`
+
+Simple Java interface for normalization of temporal expressions using TimeNorm. A timeout is used for calls to TimeNorm to prevent hanging processes. Viewed in the JetBrains IntelliJ IDE, you may see indications of missing classes for the TimeNorm scala class imports. If this is the case, make sure that you have the JetBrain Scala plugin installed and enabled. Right-click on the project/module in your "Project" window, and select Maven > "Generate Sources and Update Folders".
+
+### `public TimexNormalizer()`
+
+Simple Java interface for normalization of temporal expressions using TimeNorm. A timeout is used for calls to TimeNorm to prevent hanging processes. This will use a default timeout of 1 second and return simple normalization text.
+
+### `public TimexNormalizer( final int timeoutMillis ) throws IllegalArgumentException`
+
+Simple Java interface for normalization of temporal expressions using TimeNorm. A timeout is used for calls to TimeNorm to prevent hanging processes. This will return simple normalization text.
+
+* **Parameters:**
+    * `timeoutMillis` — Millisecond timeout for calls to TimeNorm to prevent hanging processes.
+* **Exceptions:** 
+    * `IllegalArgumentException` — if the given timeout is less than 100 or greater than 10,000.
+
+### `public TimexNormalizer( final int timeoutMillis, final boolean simpleNormal ) throws IllegalArgumentException`
+
+Simple Java interface for normalization of temporal expressions using TimeNorm. A timeout is used for calls to TimeNorm to prevent hanging processes.
+
+* **Parameters:**
+  * `timeoutMillis` — Millisecond timeout for calls to TimeNorm to prevent hanging processes.
+  * `simpleNormal` — true if the returned normalization should be simple "2012-05-13" 
+    rather than structured "TimeSpan(2026-06-15T00:00Z,2026-06-16T00:00Z,Period(Map(Days -> 1),Exact),Exact)"
+* **Exceptions:**
+    * `IllegalArgumentException` — if the given timeout is less than 100 or greater than 10,000.
+
+### `public String normalize( final String timex ) throws IllegalArgumentException`
+
+Normalize time using today (right this minute) as the anchor date.
+
+* **Parameters:**
+    * `timex` — Text containing temporal expression.
+* **Returns:** 
+    * Normalized expression of the given temporal expression.
+* **Exceptions:**
+    * `IllegalArgumentException` — if the temporal expression is empty or cannot be normalized.
+
+### `public String normalize( final String timex, final int year, final int month, final int day ) throws IllegalArgumentException`
+
+Normalize time using a provided anchor date.
+
+* **Parameters:**
+    * `timex` — Text containing temporal expression.
+    * `year` — year of the anchor date.
+    * `month` — month-of-year of the anchor date, from 1 to 12.
+    * `day` — day-of-month of the anchor date, from 1 to 31
+* **Returns:**
+    * Normalized expression of the given temporal expression.
+* **Exceptions:**
+    * `IllegalArgumentException` — if the temporal expression is empty or cannot be normalized or the anchor is bad.
+
+### `public String normalize( final String timex, final int year, final int month, final int day, final int hour, final int minute ) throws IllegalArgumentException`
+
+Normalize time using a provided anchor date.
+
+* **Parameters:**
+    * `timex` — Text containing temporal expression.
+    * `year` — year of the anchor date.
+    * `month` — month-of-year of the anchor date, from 1 to 12.
+    * `day` — day-of-month of the anchor date, from 1 to 31
+    * `hour` — hour-of-day of the anchor time, from 0 to 23
+    * `minute` — the minute-of-hour of the anchor time, from 0 to 59
+* **Returns:**
+    * Normalized expression of the given temporal expression.
+* **Exceptions:**
+    * `IllegalArgumentException` — if the temporal expression is empty or cannot be normalized or the anchor is bad.
+
+### `public String normalize( final String timex, final LocalDate anchorDate ) throws IllegalArgumentException`
+
+Normalize time using a provided anchor date.
+
+* **Parameters:**
+    * `timex` — Text containing temporal expression.
+    * `anchorDate` — The anchor time (required for resolving relative times like "today").
+* **Returns:**
+    * Normalized expression of the given temporal expression.
+* **Exceptions:**
+    * `IllegalArgumentException` — if the temporal expression is empty or cannot be normalized.
+
+### `public String normalize( final String timex, final LocalDateTime anchorTime ) throws IllegalArgumentException`
+
+Normalize time using a provided anchor date.
+
+* **Parameters:**
+    * `timex` — Text containing temporal expression.
+    * `anchorTime` — The anchor time (required for resolving relative times like "in an hour").
+* **Returns:**
+    * Normalized expression of the given temporal expression.
+* **Exceptions:**
+    * `IllegalArgumentException` — if the temporal expression is empty or cannot be normalized.
+
+### `public String normalize( final String timex, final TimeSpan anchorTime ) throws IllegalArgumentException`
+
+Normalize time using a provided anchor date.
+
+* **Parameters:**
+    * `timex` — Text containing temporal expression.
+    * `anchorTime` — The anchor time (required for resolving relative times like "today").
+* **Returns:**
+    * Normalized expression of the given temporal expression.
+* **Exceptions:**
+    * `IllegalArgumentException` — if the temporal expression is empty or cannot be normalized.
+
+### `public int getTimeout()`
+
+* **Returns:**
+    * the timeout in milliseconds used by this normalizer.
+
+### `@Override public void close()`
+
+shut down the executor
+
+### `static private final class TimeNormCallable implements Callable<String>`
+
+Simple Callable that runs TimeNorm normalization so that it can be interrupted.
+
+### `private TimeNormCallable( final String timex, final TimeSpan anchorTime, final boolean simpleNormal )`
+
+* **Parameters:**
+    * `timex` — Text containing temporal expression.
+    * `anchorTime` — The anchor time (required for resolving relative times like "today").
+    * `simpleNormal` — true if the returned normalization should be simple "2012-05-13"
+    rather than structured "TimeSpan(2026-06-15T00:00Z,2026-06-16T00:00Z,Period(Map(Days -> 1),Exact),Exact)"
+
+### `@Override public String call()`
+
+* **Returns:**
+    * normalized version of the temporal expression.
+
+
+
+## Building HealthNLP-TimeNorm (for HealthNLP-TimeNorm developers)
+
+1. Create a directory named `1.0.0`.
+2. Run `mvn package`.
+3. Copy the jar file created by `mvn package` to that directory.
+4. Copy the `pom.xml` into that directory.
+5. Rename the pom in that directory to `hnlp-timenorm-1.0.0.pom`.
+6. Zip the directory as a file named `hnlp-timenorm.zip`.
+7. Upload the zip file as an Asset to the release area at `https://github.com/HealthNLPorg/hnlp-timenorm/releases/tag/1.0.0`
+
