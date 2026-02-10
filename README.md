@@ -153,20 +153,21 @@ Add a download of HealthNLP-TimeNorm to your maven repositories `.m2/`, to take 
 <plugin>
     <groupId>io.github.download-maven-plugin</groupId>
     <artifactId>download-maven-plugin</artifactId>
-    <version>LATEST_VERSION</version>
+    <version>2.0.0</version>
     <executions>
         <execution>
             <id>get-hnlp-timenorm</id>
-            <phase>post-clean</phase>
+            <phase>clean</phase>
             <goals>
                 <goal>wget</goal>
             </goals>
         </execution>
     </executions>
     <configuration>
-        <url>https://github.com/HealthNLPorg/hnlp-timenorm/releases/download/hnlp-timenorm-1.0.0/hnlpt-timenorm.zip</url>
+        <url>https://github.com/HealthNLPorg/hnlp-timenorm/releases/download/1.0.0/hnlp-timenorm.zip</url>
         <unpack>true</unpack>
         <outputDirectory>${settings.localRepository}/org/healthnlp/hnlp-timenorm</outputDirectory>
     </configuration>
 </plugin>
 ```
+Java and/or your IDE will not be able to find hnlp-timenorm until you perform mvn clean.
