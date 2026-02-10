@@ -1,21 +1,22 @@
 package org.healthnlp.timenorm;
 
-import org.clulab.timenorm.scfg.Temporal;
 import org.clulab.timenorm.scfg.TemporalExpressionParser;
 import org.clulab.timenorm.scfg.TimeSpan;
 
 import java.io.Closeable;
+import java.time.LocalDate;
 import java.util.concurrent.*;
-import java.util.logging.Logger;
 import java.util.regex.Pattern;
 
 
 /**
  * Simple Java interface for normalization of temporal expressions using TimeNorm.
  * A timeout is used for calls to TimeNorm to prevent hanging processes.
+ * Viewed in the JetBrains IntelliJ IDE, you may see indications of missing classes for the TimeNorm scala class imports.
+ * If this is the case, make sure that you have the JetBrain Scala plugin installed and enabled.
+ * Right-click on the project/module in your "Project" window, and select Maven > "Generate Sources and Update Folders".
  */
 final public class TimexNormalizer implements Closeable {
-    static private final Logger LOGGER = Logger.getLogger( "TimexNormalizer" );
 
     // Use the TimeNorm English parser.
     static private final TemporalExpressionParser NORMALIZER = TemporalExpressionParser.en();
@@ -42,14 +43,14 @@ final public class TimexNormalizer implements Closeable {
     /**
      * Simple Java interface for normalization of temporal expressions using TimeNorm.
      * @param timeoutMillis Millisecond timeout for calls to TimeNorm to prevent hanging processes.
+     * @throws IllegalArgumentException if the given timeout is less than 100 or greater than 10,000.
      */
-    public TimexNormalizer( final int timeoutMillis ) {
+    public TimexNormalizer( final int timeoutMillis ) throws IllegalArgumentException {
         if ( timeoutMillis < MIN_TIMEOUT_MILLIS || timeoutMillis > MAX_TIMEOUT_MILLIS ) {
             throw new IllegalArgumentException( "Timeout must be between "
                   + MIN_TIMEOUT_MILLIS + " and " + MAX_TIMEOUT_MILLIS );
         }
         _timeoutMillis = timeoutMillis;
-        LOGGER.info( "Using timeout: " + _timeoutMillis + " milliseconds." );
         _executor = Executors.newSingleThreadExecutor();
     }
 
@@ -57,38 +58,46 @@ final public class TimexNormalizer implements Closeable {
      *
      * @param timex Text containing temporal expression.
      * @return Normalized expression of the given temporal expression.
+     * @throws IllegalArgumentException if the temporal expression is empty or cannot be normalized.
      */
-    public String getNormalizedTimex( final String timex ) {
+    public String getNormalizedTimex( final String timex ) throws IllegalArgumentException {
         return getNormalizedTimex( timex, null );
     }
 
     /**
      *
      * @param timex Text containing temporal expression.
-     * @param referenceTime TimeNorm TimeSpan object representing some reference time for normalization.
+     * @param anchorTime The anchor time (required for resolving relative times like "today").
      * @return Normalized expression of the given temporal expression.
+     * @throws IllegalArgumentException if the temporal expression is empty or cannot be normalized.
      */
-    public String getNormalizedTimex( final String timex, final TimeSpan referenceTime ) {
+    public String getNormalizedTimex( final String timex, final TimeSpan anchorTime ) throws IllegalArgumentException {
         if ( timex.isBlank() ) {
-            return "";
+            throw new IllegalArgumentException( "Cannot normalize an empty Temporal Expression." );
         }
         final String tempex = String.join( " ", WHITESPACE_PATTERN.split( timex ) );
-        final Callable<String> callable = new TimeNormCallable( tempex, referenceTime );
+        final Callable<String> callable = new TimeNormCallable( tempex, anchorTime );
         final Future<String> future = _executor.submit( callable );
         try {
             return future.get( _timeoutMillis, TimeUnit.MILLISECONDS );
         } catch ( InterruptedException | ExecutionException | TimeoutException multE ) {
-            LOGGER.fine( "Timeout at " + _timeoutMillis + " milliseconds for text " + timex );
-            if ( !future.cancel( true ) ) {
-                LOGGER.severe( "Timed out but could not be cancelled while normalizing text " + timex );
+            // An exception will be thrown that is equal to an UnsupportedOperationException thrown by TimeNorm.
+            // However, it is somehow cast to another type.  Need to recognize it by its message.
+            if ( multE.getMessage().contains( "UnsupportedOperationException" ) ) {
+                throw new IllegalArgumentException( "Unable to normalize temporal expression " + timex, multE );
+            } else {
+                throw new IllegalArgumentException( "Normalization timed out at " + _timeoutMillis + " milliseconds on temporal expression " + timex, multE );
             }
         }
-        if ( future.isCancelled() ) {
-            LOGGER.severe( "Cancelled while normalizing text " + timex );
-        } else if ( !future.isDone() ) {
-            LOGGER.severe( "Not cancelled but didn't complete while normalizing text " + timex );
-        }
-        return "";
+    }
+
+
+    /**
+     *
+     * @return the timeout in milliseconds used by this normalizer.
+     */
+    public int getTimeout() {
+        return _timeoutMillis;
     }
 
     /**
@@ -106,24 +115,21 @@ final public class TimexNormalizer implements Closeable {
      */
     static private final class TimeNormCallable implements Callable<String> {
         final private String __timex;
-        final private TimeSpan __referenceTime;
+        final private TimeSpan __anchorTime;
 
         /**
          *
          * @param timex Text containing temporal expression.
+         * @param anchorTime The anchor time (required for resolving relative times like "today").
          */
-        private TimeNormCallable( final String timex ) {
-            this( timex, null );
-        }
-
-        /**
-         *
-         * @param timex Text containing temporal expression.
-         * @param referenceTime TimeNorm TimeSpan object representing some reference time for normalization.
-         */
-        private TimeNormCallable( final String timex, final TimeSpan referenceTime ) {
+        private TimeNormCallable( final String timex, final TimeSpan anchorTime ) {
             __timex = timex;
-            __referenceTime = referenceTime;
+            if ( anchorTime != null ) {
+                __anchorTime = anchorTime;
+            } else {
+                final LocalDate today = LocalDate.now();
+                __anchorTime = TimeSpan.of( today.getYear(), today.getMonthValue(), today.getDayOfMonth() );
+            }
         }
 
         /**
@@ -133,7 +139,7 @@ final public class TimexNormalizer implements Closeable {
          */
         @Override
         public String call() {
-            return NORMALIZER.parse( __timex, __referenceTime ).get().timeMLValue();
+            return NORMALIZER.parse( __timex, __anchorTime ).get().timeMLValue();
         }
     }
 
