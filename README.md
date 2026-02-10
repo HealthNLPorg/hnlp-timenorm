@@ -157,7 +157,7 @@ Add a download of HealthNLP-TimeNorm to your maven repositories `.m2/`, to take 
     <executions>
         <execution>
             <id>get-hnlp-timenorm</id>
-            <phase>generate-sources</phase>
+            <phase>post-clean</phase>
             <goals>
                 <goal>wget</goal>
             </goals>

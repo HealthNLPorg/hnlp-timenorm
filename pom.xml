@@ -102,6 +102,8 @@
           </execution>
         </executions>
       </plugin>
+      <!-- We could use the maven assembly plugin to zip the jar and pom file for installation in a user's .m2, but that is overkill.
+         It is easier to just do it manually when necessary. -->
     </plugins>
   </build>
 </project>
