@@ -32,7 +32,7 @@ final public class TimexNormalizer implements Closeable {
     static private final int MAX_TIMEOUT_MILLIS = 10000;
     private final int _timeoutMillis;
 
-    private final boolean _simpleNormal;
+    private final boolean _simpleFormat;
 
     private final ExecutorService _executor;
 
@@ -59,18 +59,29 @@ final public class TimexNormalizer implements Closeable {
     /**
      * Simple Java interface for normalization of temporal expressions using TimeNorm.
      * A timeout is used for calls to TimeNorm to prevent hanging processes.
+     * This will use a default timeout of 1 second and return simple normalization text.
+     * @param simpleFormat true if the returned normalization should be simple "2012-05-13",
+     *                    rather than structured "TimeSpan(2026-06-15T00:00Z,2026-06-16T00:00Z,Period(Map(Days -> 1),Exact),Exact)"
+     */
+    public TimexNormalizer( final boolean simpleFormat ) {
+        this( DEFAULT_TIMEOUT_MILLIS, simpleFormat );
+    }
+
+    /**
+     * Simple Java interface for normalization of temporal expressions using TimeNorm.
+     * A timeout is used for calls to TimeNorm to prevent hanging processes.
      * @param timeoutMillis Millisecond timeout for calls to TimeNorm to prevent hanging processes.
-     * @param simpleNormal true if the returned normalization should be simple "2012-05-13"
+     * @param simpleFormat true if the returned normalization should be simple "2012-05-13",
      *                    rather than structured "TimeSpan(2026-06-15T00:00Z,2026-06-16T00:00Z,Period(Map(Days -> 1),Exact),Exact)"
      * @throws IllegalArgumentException if the given timeout is less than 100 or greater than 10,000.
      */
-    public TimexNormalizer( final int timeoutMillis, final boolean simpleNormal ) throws IllegalArgumentException {
+    public TimexNormalizer( final int timeoutMillis, final boolean simpleFormat ) throws IllegalArgumentException {
         if ( timeoutMillis < MIN_TIMEOUT_MILLIS || timeoutMillis > MAX_TIMEOUT_MILLIS ) {
             throw new IllegalArgumentException( "Timeout must be between "
                   + MIN_TIMEOUT_MILLIS + " and " + MAX_TIMEOUT_MILLIS );
         }
         _timeoutMillis = timeoutMillis;
-        _simpleNormal = simpleNormal;
+        _simpleFormat = simpleFormat;
         _executor = Executors.newSingleThreadExecutor();
     }
 
@@ -165,7 +176,7 @@ final public class TimexNormalizer implements Closeable {
             throw new IllegalArgumentException( "Cannot normalize an empty Temporal Expression." );
         }
         final String tempex = String.join( " ", WHITESPACE_PATTERN.split( timex ) );
-        final Callable<String> callable = new TimeNormCallable( tempex, anchorTime, _simpleNormal );
+        final Callable<String> callable = new TimeNormCallable( tempex, anchorTime, _simpleFormat );
         final Future<String> future = _executor.submit( callable );
         try {
             return future.get( _timeoutMillis, TimeUnit.MILLISECONDS );
@@ -189,7 +200,16 @@ final public class TimexNormalizer implements Closeable {
     }
 
     /**
-     * shut down the executor
+     *
+     * @return true if normalization returns simple text, e.g. 2012-05-13"
+     *         rather than structured "TimeSpan(2026-06-15T00:00Z,2026-06-16T00:00Z,Period(Map(Days -> 1),Exact),Exact)"
+     */
+    public boolean isSimpleFormat() {
+        return _simpleFormat;
+    }
+
+    /**
+     * shut down the executor.
      * {@inheritDoc}
      */
     @Override
@@ -204,19 +224,19 @@ final public class TimexNormalizer implements Closeable {
     static private final class TimeNormCallable implements Callable<String> {
         final private String __timex;
         final private TimeSpan __anchorTime;
-        final private boolean __simpleNormal;
+        final private boolean __simpleFormat;
 
         /**
          *
          * @param timex Text containing temporal expression.
          * @param anchorTime The anchor time (required for resolving relative times like "today").
-         * @param simpleNormal true if the returned normalization should be simple "2012-05-13"
+         * @param simpleFormat true if the returned normalization should be simple "2012-05-13",
          *                    rather than structured "TimeSpan(2026-06-15T00:00Z,2026-06-16T00:00Z,Period(Map(Days -> 1),Exact),Exact)"
          */
-        private TimeNormCallable( final String timex, final TimeSpan anchorTime, final boolean simpleNormal ) {
+        private TimeNormCallable( final String timex, final TimeSpan anchorTime, final boolean simpleFormat ) {
             __timex = timex;
             __anchorTime = anchorTime;
-            __simpleNormal = simpleNormal;
+            __simpleFormat = simpleFormat;
         }
 
         /**
@@ -227,7 +247,7 @@ final public class TimexNormalizer implements Closeable {
         @Override
         public String call() {
             final Temporal t = NORMALIZER.parse( __timex, __anchorTime ).get();
-            return __simpleNormal ? t.timeMLValue() : t.toString();
+            return __simpleFormat ? t.timeMLValue() : t.toString();
         }
     }
 

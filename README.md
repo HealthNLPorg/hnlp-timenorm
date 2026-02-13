@@ -5,7 +5,8 @@ of dates and times and converting them to a normalized form.
 
 # HealthNLP TimeNorm
  
-TimeNorm as modified by Eli Goldner for the [ChemoTimelines](https://github.com/HealthNLPorg/chemoTimelinesBaselineSystem) project. 
+TimeNorm as modified by Eli Goldner for the [ChemoTimelines](https://github.com/HealthNLPorg/chemoTimelinesBaselineSystem) project,
+with a simple [Java API](#Java-TimexNormalizer-Class).   
 
 ## Text to time expressions with the neural parser
 
@@ -192,13 +193,21 @@ Simple Java interface for normalization of temporal expressions using TimeNorm. 
 * **Exceptions:** 
     * `IllegalArgumentException` — if the given timeout is less than 100 or greater than 10,000.
 
-### `public TimexNormalizer( final int timeoutMillis, final boolean simpleNormal ) throws IllegalArgumentException`
+### `public TimexNormalizer( final boolean simpleFormat ) throws IllegalArgumentException``public TimexNormalizer( final int timeoutMillis, final boolean simpleFormat ) throws IllegalArgumentException`
+
+Simple Java interface for normalization of temporal expressions using TimeNorm. A timeout is used for calls to TimeNorm to prevent hanging processes.   This will use a default timeout of 1 second and return simple normalization text.
+
+* **Parameters:**
+  * `simpleFormat` — true if the returned normalization should be simple "2012-05-13"
+    rather than structured "TimeSpan(2026-06-15T00:00Z,2026-06-16T00:00Z,Period(Map(Days -> 1),Exact),Exact)"
+
+### `public TimexNormalizer( final int timeoutMillis, final boolean simpleFormat ) throws IllegalArgumentException``public TimexNormalizer( final int timeoutMillis, final boolean simpleFormat ) throws IllegalArgumentException`
 
 Simple Java interface for normalization of temporal expressions using TimeNorm. A timeout is used for calls to TimeNorm to prevent hanging processes.
 
 * **Parameters:**
   * `timeoutMillis` — Millisecond timeout for calls to TimeNorm to prevent hanging processes.
-  * `simpleNormal` — true if the returned normalization should be simple "2012-05-13" 
+  * `simpleFormat` — true if the returned normalization should be simple "2012-05-13" 
     rather than structured "TimeSpan(2026-06-15T00:00Z,2026-06-16T00:00Z,Period(Map(Days -> 1),Exact),Exact)"
 * **Exceptions:**
     * `IllegalArgumentException` — if the given timeout is less than 100 or greater than 10,000.
@@ -285,20 +294,25 @@ Normalize time using a provided anchor date.
 * **Returns:**
     * the timeout in milliseconds used by this normalizer.
 
+### `public boolean isSimpleFormat()`
+
+* **Returns:**
+  * true if normalization returns simple text, e.g. 2012-05-13" rather than structured "TimeSpan(2026-06-15T00:00Z,2026-06-16T00:00Z,Period(Map(Days -> 1),Exact),Exact)"
+
 ### `@Override public void close()`
 
-shut down the executor
+shut down the executor.
 
 ### `static private final class TimeNormCallable implements Callable<String>`
 
 Simple Callable that runs TimeNorm normalization so that it can be interrupted.
 
-### `private TimeNormCallable( final String timex, final TimeSpan anchorTime, final boolean simpleNormal )`
+### `private TimeNormCallable( final String timex, final TimeSpan anchorTime, final boolean simpleFormat )`
 
 * **Parameters:**
     * `timex` — Text containing temporal expression.
     * `anchorTime` — The anchor time (required for resolving relative times like "today").
-    * `simpleNormal` — true if the returned normalization should be simple "2012-05-13"
+    * `simpleFormat` — true if the returned normalization should be simple "2012-05-13"
     rather than structured "TimeSpan(2026-06-15T00:00Z,2026-06-16T00:00Z,Period(Map(Days -> 1),Exact),Exact)"
 
 ### `@Override public String call()`
